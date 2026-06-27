@@ -1,0 +1,33 @@
+# Build artifacts
+target/
+
+# Maven local repo & wrapper runtime artifacts
+.mvn/wrapper/maven-wrapper.jar
+
+# VCS
+.git/
+.gitignore
+.gitattributes
+
+# IDE/editor
+.vscode/
+*.iml
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Env / secrets
+*.env
+.env
+
+# Tests (optional; safe to keep out of build context)
+src/test/
+
+# Frontend (not part of backend container build)
+../..
+
