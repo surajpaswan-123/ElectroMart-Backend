@@ -68,6 +68,11 @@
 			<optional>true</optional>
 		</dependency>
 		
+		<!-- Email Configuration -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 		
 		<!-- YE ADD KARO (test dependencies ka sahi block) -->
 <dependency>
