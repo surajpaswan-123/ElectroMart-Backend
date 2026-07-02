@@ -26,7 +26,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/auth/login",
-                    "/api/auth/register"
+                    "/api/auth/register",
+                    "/api/auth/send-otp",
+                    "/api/auth/verify-otp",
+                    "/api/auth/resend-otp"
                 ).permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/api/**").permitAll()
                 .anyRequest().authenticated()
@@ -43,4 +46,3 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-
