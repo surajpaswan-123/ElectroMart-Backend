@@ -13,6 +13,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -35,4 +37,13 @@ public class User {
 private String password;
 
     private String role;
+
+    @Column(nullable = true)
+    private Boolean emailVerified = false;
+
+    @Column(nullable = true)
+    private String otp;
+
+    @Column(nullable = true)
+    private LocalDateTime otpExpiresAt;
 }
