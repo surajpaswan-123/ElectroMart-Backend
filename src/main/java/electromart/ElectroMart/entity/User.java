@@ -1,7 +1,6 @@
 package electromart.ElectroMart.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -30,20 +29,29 @@ public class User {
 
     private String name;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
-   @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-private String password;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
 
     private String role;
 
-    @Column(nullable = true)
+    @Column(nullable = false)
+    @Builder.Default
     private Boolean emailVerified = false;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = true)
     private String otp;
 
     @Column(nullable = true)
     private LocalDateTime otpExpiresAt;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer otpAttempts = 0;
+
+    @Column(nullable = true)
+    private LocalDateTime otpLastSentAt;
 }
