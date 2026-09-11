@@ -37,7 +37,7 @@ public class User {
 
     private String role;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Builder.Default
     private Boolean emailVerified = false;
 
@@ -48,7 +48,7 @@ public class User {
     @Column(nullable = true)
     private LocalDateTime otpExpiresAt;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Builder.Default
     private Integer otpAttempts = 0;
 
