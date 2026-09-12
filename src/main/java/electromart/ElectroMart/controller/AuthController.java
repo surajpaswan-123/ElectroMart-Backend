@@ -7,6 +7,8 @@ import electromart.ElectroMart.dto.RegisterRequest;
 import electromart.ElectroMart.entity.User;
 import electromart.ElectroMart.service.EmailService;
 import electromart.ElectroMart.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private UserService userService;
@@ -104,7 +108,8 @@ public class AuthController {
         try {
             emailService.sendOtpEmail(email, otp);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send OTP. Please try again later.");
+            log.error("OTP email delivery failed for {}: {}", maskEmail(email), e.getMessage(), e);
+            throw new RuntimeException("OTP email could not be sent. Check the email service configuration and try again.");
         }
 
         userService.setOtp(pendingUser, otp);
@@ -167,7 +172,8 @@ public class AuthController {
         try {
             emailService.sendOtpEmail(email, otp);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to resend OTP. Please try again later.");
+            log.error("OTP resend failed for {}: {}", maskEmail(email), e.getMessage(), e);
+            throw new RuntimeException("OTP email could not be resent. Check the email service configuration and try again.");
         }
 
         userService.setOtp(pendingUser, otp);
@@ -188,5 +194,17 @@ public class AuthController {
         if (request.getPassword().length() < 6) {
             throw new RuntimeException("Password must be at least 6 characters");
         }
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***";
+        }
+        String[] parts = email.split("@", 2);
+        String local = parts[0];
+        String maskedLocal = local.length() <= 2
+                ? "*"
+                : local.substring(0, 1) + "***" + local.substring(local.length() - 1);
+        return maskedLocal + "@" + parts[1];
     }
 }
