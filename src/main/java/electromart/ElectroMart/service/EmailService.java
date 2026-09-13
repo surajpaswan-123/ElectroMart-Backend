@@ -1,6 +1,5 @@
 package electromart.ElectroMart.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -9,7 +8,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Map;
 
 @Service
 public class EmailService {
@@ -25,8 +23,6 @@ public class EmailService {
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
             .build();
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void sendOtpEmail(String email, String otp) {
         if (resendApiKey == null || resendApiKey.isBlank()) {
@@ -50,15 +46,21 @@ public class EmailService {
                 + "<p>If you did not create an ElectroMart account, you can ignore this email.</p>"
                 + "</div>";
 
-        try {
-            String payload = objectMapper.writeValueAsString(Map.of(
-                    "from", fromEmail,
-                    "to", new String[]{email},
-                    "subject", subject,
-                    "text", text,
-                    "html", html
-            ));
+        String escapedFrom = jsonEscape(fromEmail);
+        String escapedEmail = jsonEscape(email);
+        String escapedSubject = jsonEscape(subject);
+        String escapedText = jsonEscape(text);
+        String escapedHtml = jsonEscape(html);
 
+        String payload = "{"
+                + "\"from\":\"" + escapedFrom + "\","
+                + "\"to\":[\"" + escapedEmail + "\"],"
+                + "\"subject\":\"" + escapedSubject + "\","
+                + "\"text\":\"" + escapedText + "\","
+                + "\"html\":\"" + escapedHtml + "\""
+                + "}";
+
+        try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(RESEND_API_URL))
                     .timeout(Duration.ofSeconds(20))
@@ -81,8 +83,19 @@ public class EmailService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Email request was interrupted", e);
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to send OTP email through Resend", e);
+            throw new IllegalStateException("Failed to send OTP email through Resend: " + e.getMessage(), e);
         }
+    }
+
+    private String jsonEscape(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
     }
 }
