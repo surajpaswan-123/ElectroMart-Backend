@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 
 import java.util.Map;
 
@@ -42,6 +44,24 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> register(@RequestBody RegisterRequest request) {
         validateRegistrationRequest(request);
         return sendOtpInternal(request);
+    }
+
+    @GetMapping("/me")
+    public User me() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) throw new RuntimeException("Unauthorized");
+        return userService.findByEmail(String.valueOf(auth.getPrincipal()));
+    }
+
+    @PutMapping("/me")
+    public User updateMe(@RequestBody Map<String,String> body) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) throw new RuntimeException("Unauthorized");
+        User user = userService.findByEmail(String.valueOf(auth.getPrincipal()));
+        if (body.get("name") != null && !body.get("name").isBlank()) user.setName(body.get("name").trim());
+        if (body.get("email") != null && !body.get("email").isBlank() && !body.get("email").equalsIgnoreCase(user.getEmail())) throw new RuntimeException("Email change requires re-verification");
+        if (body.get("phone") != null) user.setName(user.getName());
+        return userService.save(user);
     }
 
     @PostMapping("/login")
