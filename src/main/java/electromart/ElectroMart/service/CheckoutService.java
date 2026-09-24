@@ -49,6 +49,7 @@ public class CheckoutService {
 
         double subtotal = 0;
         Order order = Order.builder()
+                .orderItems(new java.util.ArrayList<>())
                 .customerName(request.getCustomerName().trim())
                 .email(request.getEmail().trim())
                 .phone(request.getPhone().trim())
