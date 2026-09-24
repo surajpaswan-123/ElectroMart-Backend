@@ -34,7 +34,7 @@ public class SecurityConfig {
                  .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/categories").hasRole("ADMIN")
                  .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/coupons").hasRole("ADMIN")
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/coupons").hasRole("ADMIN")
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/orders").hasRole("ADMIN")
+                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/orders").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .httpBasic(Customizer.withDefaults());
