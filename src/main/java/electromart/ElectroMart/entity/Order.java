@@ -52,6 +52,12 @@ public class Order {
 
     private LocalDateTime orderDate;
 
+    private String trackingNumber;
+
+    private String courierName;
+
+    private LocalDateTime estimatedDeliveryDate;
+
     // Logged-in User
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
