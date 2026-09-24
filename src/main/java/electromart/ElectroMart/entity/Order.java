@@ -42,11 +42,21 @@ public class Order {
 
     private Double totalAmount;
 
+    private String couponCode;
+
+    private Double discountAmount;
+
     private String paymentMethod;
 
     private String orderStatus;
 
     private LocalDateTime orderDate;
+
+    private String trackingNumber;
+
+    private String courierName;
+
+    private LocalDateTime estimatedDeliveryDate;
 
     // Logged-in User
     @ManyToOne(fetch = FetchType.LAZY)
