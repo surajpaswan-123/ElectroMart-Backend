@@ -115,6 +115,15 @@ public class CouponService {
         return cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Cart is empty"));
     }
 
+    public void validateForCheckout(Coupon coupon, Cart cart, double subtotal) {
+        validateMinimum(coupon, subtotal);
+        validateScope(coupon, cart);
+    }
+
+    public double calculateForCheckout(Coupon coupon, double subtotal) {
+        return calculateDiscount(coupon, subtotal);
+    }
+
     private void validateMinimum(Coupon coupon, double subtotal) {
         if (coupon.getMinimumOrderValue() != null && subtotal < coupon.getMinimumOrderValue()) {
             throw new RuntimeException("Minimum order value is ₹" + coupon.getMinimumOrderValue());
