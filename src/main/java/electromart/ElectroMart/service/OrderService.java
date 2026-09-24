@@ -1,116 +1,147 @@
 package electromart.ElectroMart.service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import electromart.ElectroMart.entity.Order;
 import electromart.ElectroMart.entity.OrderItem;
+import electromart.ElectroMart.entity.Payment;
 import electromart.ElectroMart.entity.Product;
 import electromart.ElectroMart.entity.User;
 import electromart.ElectroMart.repository.OrderRepository;
+import electromart.ElectroMart.repository.PaymentRepository;
 import electromart.ElectroMart.repository.ProductRepository;
+import electromart.ElectroMart.repository.UserRepository;
 
 @Service
 public class OrderService {
 
-    @Autowired
-    private OrderRepository orderRepository;
+    @Autowired private OrderRepository orderRepository;
+    @Autowired private ProductRepository productRepository;
+    @Autowired private PaymentRepository paymentRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
-
+    @Transactional
     public Order placeOrder(Order order) {
-        System.out.println("[OrderService] placeOrder() started");
-        if (order == null) {
-            throw new IllegalArgumentException("Order payload is null");
-        }
+        if (order == null) throw new IllegalArgumentException("Order payload is null");
 
+        User user = currentUser();
+        order.setUser(user);
         order.setOrderDate(LocalDateTime.now());
+        order.setOrderStatus("PLACED");
+        order.setTrackingNumber("EM-" + UUID.randomUUID().toString().substring(0, 10).toUpperCase());
+        order.setCourierName("ElectroMart Delivery");
+        order.setEstimatedDeliveryDate(LocalDateTime.now().plusDays(5));
 
-        if (order.getOrderStatus() == null) {
-            order.setOrderStatus("PLACED");
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            throw new RuntimeException("Order must contain at least one item");
         }
 
-        if (order.getOrderItems() != null) {
-            System.out.println("[OrderService] orderItems size=" + order.getOrderItems().size());
-            for (OrderItem item : order.getOrderItems()) {
-                Long productId = (item != null && item.getProduct() != null) ? item.getProduct().getId() : null;
-                System.out.println("[OrderService] Processing OrderItem: productId=" + productId + ", qty=" + (item == null ? null : item.getQuantity()) + ", price=" + (item == null ? null : item.getPrice()));
-
-                if (item.getProduct() != null && item.getProduct().getId() != null) {
-                    Product managedProduct = productRepository.findById(item.getProduct().getId())
-                            .orElseThrow(() -> new RuntimeException("Product Not Found: " + item.getProduct().getId()));
-
-                    item.setProduct(managedProduct);
-
-                    // Ensure price matches current product price if missing
-                    if (item.getPrice() == null) {
-                        item.setPrice(managedProduct.getPrice());
-                    }
-                }
-                // Ensure bidirectional relationship
-                item.setOrder(order);
+        double calculatedTotal = 0;
+        for (OrderItem item : order.getOrderItems()) {
+            if (item == null || item.getProduct() == null || item.getProduct().getId() == null) {
+                throw new RuntimeException("Every order item must contain a product");
             }
-        } else {
-            System.out.println("[OrderService] orderItems is null");
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new RuntimeException("Order quantity must be greater than 0");
+            }
+
+            Product product = productRepository.findById(item.getProduct().getId())
+                    .orElseThrow(() -> new RuntimeException("Product Not Found: " + item.getProduct().getId()));
+
+            if (product.getStock() == null || product.getStock() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for: " + product.getTitle());
+            }
+
+            double price = product.getPrice() == null ? 0 : product.getPrice();
+            item.setProduct(product);
+            item.setPrice(price);
+            item.setOrder(order);
+            calculatedTotal += price * item.getQuantity();
         }
 
-        // Attach authenticated user (from JWT) before saving.
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new org.springframework.security.authentication.BadCredentialsException("Unauthorized: missing/invalid JWT authentication");
-        }
+        double discount = order.getDiscountAmount() == null ? 0 : Math.max(0, order.getDiscountAmount());
+        double expectedTotal = Math.max(0, calculatedTotal + 20 - discount);
+        order.setTotalAmount(round(expectedTotal));
 
-        String email = authentication.getPrincipal() == null ? null : authentication.getPrincipal().toString();
-        if (email == null || email.isBlank()) {
-            throw new org.springframework.security.authentication.BadCredentialsException("Unauthorized: JWT principal email is missing");
-        }
-
-        User authenticatedUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new org.springframework.security.core.userdetails.UsernameNotFoundException("User not found: " + email));
-
-        order.setUser(authenticatedUser);
-
-        System.out.println("[OrderService] Saving order with user_id=" + authenticatedUser.getId());
         Order saved = orderRepository.save(order);
-        System.out.println("[OrderService] Saved order. id=" + saved.getId());
-        System.out.println("[OrderService] saved.orderItems size=" + (saved.getOrderItems() == null ? 0 : saved.getOrderItems().size()));
+
+        for (OrderItem item : saved.getOrderItems()) {
+            Product product = item.getProduct();
+            product.setStock(product.getStock() - item.getQuantity());
+            productRepository.save(product);
+        }
 
         return saved;
     }
-
 
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }
 
     public Order getOrderById(Long id) {
-        return orderRepository.findById(id)
+        Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order Not Found"));
+        User user = currentUser();
+        if (!isAdmin(user) && !order.getUser().getId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("You cannot access this order");
+        }
+        return order;
     }
 
-// OrderService.java — PURA getMyOrders() METHOD REPLACE KARO
-
-@Autowired
-private electromart.ElectroMart.repository.UserRepository userRepository;
-
-public List<Order> getMyOrders() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    if (authentication == null || !authentication.isAuthenticated()) {
-        throw new SecurityException("Unauthenticated");
+    public List<Order> getMyOrders() {
+        return orderRepository.findByUserOrderByOrderDateDesc(currentUser());
     }
 
-    String emailForOrders = authentication.getPrincipal().toString();
+    @Transactional
+    public Order updateStatus(Long id, String status) {
+        User admin = currentUser();
+        if (!isAdmin(admin)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
 
-    User userForOrders = userRepository.findByEmail(emailForOrders)
-            .orElseThrow(() -> new RuntimeException("User not found: " + emailForOrders));
+        String normalized = status == null ? "" : status.trim().toUpperCase();
+        if (!List.of("PLACED", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "RETURN_APPROVED", "REFUNDED").contains(normalized)) {
+            throw new RuntimeException("Invalid order status");
+        }
 
-    return orderRepository.findByUser(userForOrders);
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order Not Found"));
+        order.setOrderStatus(normalized);
+        return orderRepository.save(order);
+    }
+
+    private User currentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) throw new org.springframework.security.authentication.BadCredentialsException("Unauthorized");
+        return userRepository.findByEmail(String.valueOf(auth.getPrincipal()))
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @Transactional
+    public Order updateTracking(Long id, String courierName, String trackingNumber, Integer deliveryDays) {
+        User admin = currentUser();
+        if (!isAdmin(admin)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        Order order = orderRepository.findById(id).orElseThrow(() -> new RuntimeException("Order Not Found"));
+        if (courierName != null && !courierName.isBlank()) order.setCourierName(courierName.trim());
+        if (trackingNumber != null && !trackingNumber.isBlank()) order.setTrackingNumber(trackingNumber.trim());
+        if (deliveryDays != null) {
+            if (deliveryDays < 0 || deliveryDays > 30) throw new IllegalArgumentException("Delivery days must be between 0 and 30");
+            order.setEstimatedDeliveryDate(LocalDateTime.now().plusDays(deliveryDays));
+        }
+        return orderRepository.save(order);
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole());
+    }
+
+    private double round(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
 }
-}
-

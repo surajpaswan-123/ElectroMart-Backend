@@ -86,6 +86,38 @@ public class WishlistService {
         return result;
     }
 
+    public boolean isWishlisted(Long productId) {
+        if (productId == null) return false;
+        User user = getAuthenticatedUser();
+        return wishlistRepository.findByProductIdAndUserId(productId, user.getId()).isPresent();
+    }
+
+    public boolean toggleWishlist(Long productId) {
+        if (productId == null) {
+            throw new RuntimeException("Invalid Product");
+        }
+
+        User user = getAuthenticatedUser();
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Invalid Product"));
+
+        Optional<Wishlist> existing =
+                wishlistRepository.findByProductIdAndUserId(product.getId(), user.getId());
+
+        if (existing.isPresent()) {
+            wishlistRepository.delete(existing.get());
+            return false;
+        }
+
+        wishlistRepository.save(
+                Wishlist.builder()
+                        .product(product)
+                        .user(user)
+                        .build()
+        );
+        return true;
+    }
+
     public void removeWishlist(Long productId) {
         if (productId == null) return;
 
