@@ -11,6 +11,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import electromart.ElectroMart.entity.User;
+import electromart.ElectroMart.repository.UserRepository;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.core.convert.converter.Converter;
@@ -36,7 +38,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    Converter<Jwt, AbstractAuthenticationToken> clerkJwtAuthenticationConverter() {
+    Converter<Jwt, AbstractAuthenticationToken> clerkJwtAuthenticationConverter(UserRepository userRepository) {
         return jwt -> {
             String email = jwt.getClaimAsString("email");
             if (email == null || email.isBlank()) {
@@ -45,9 +47,10 @@ public class SecurityConfig {
                 );
             }
 
-            String role = jwt.getClaimAsString("role");
-            if (role == null || role.isBlank()) {
-                role = "USER";
+            String role = "USER";
+            User localUser = userRepository.findByEmail(email.trim().toLowerCase()).orElse(null);
+            if (localUser != null && localUser.getRole() != null && !localUser.getRole().isBlank()) {
+                role = localUser.getRole();
             }
 
             return new UsernamePasswordAuthenticationToken(
