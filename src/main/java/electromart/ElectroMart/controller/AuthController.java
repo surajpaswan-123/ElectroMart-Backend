@@ -61,7 +61,14 @@ public class AuthController {
             throw new RuntimeException("Please verify your email before logging in");
         }
 
-        String token = jwtUtil.generateToken(user.getEmail());
+        String role = user.getRole();
+        if (role == null || role.isBlank()) {
+            role = "USER";
+            user.setRole(role);
+            userService.save(user);
+        }
+
+        String token = jwtUtil.generateToken(user.getEmail(), role);
         return new LoginResponse(token, user);
     }
 
