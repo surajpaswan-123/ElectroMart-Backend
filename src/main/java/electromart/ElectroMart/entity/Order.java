@@ -42,6 +42,10 @@ public class Order {
 
     private Double totalAmount;
 
+    private String couponCode;
+
+    private Double discountAmount;
+
     private String paymentMethod;
 
     private String orderStatus;
