@@ -29,6 +29,16 @@ public class WishlistController {
         return wishlistService.addToWishlist(productId);
     }
 
+    @PostMapping("/toggle")
+    public boolean toggleWishlist(@RequestParam Long productId) {
+        return wishlistService.toggleWishlist(productId);
+    }
+
+    @GetMapping("/check/{productId}")
+    public boolean isWishlisted(@PathVariable Long productId) {
+        return wishlistService.isWishlisted(productId);
+    }
+
     @GetMapping
     public List<WishlistResponse> getWishlist() {
 
