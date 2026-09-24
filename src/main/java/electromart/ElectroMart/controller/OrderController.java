@@ -37,6 +37,14 @@ public class OrderController {
         return orderService.getOrderById(id);
     }
 
+    @PatchMapping("/{id}/tracking")
+    public Order updateTracking(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        String courier = body.get("courierName") == null ? null : String.valueOf(body.get("courierName"));
+        String tracking = body.get("trackingNumber") == null ? null : String.valueOf(body.get("trackingNumber"));
+        Integer days = body.get("deliveryDays") == null ? null : Integer.valueOf(String.valueOf(body.get("deliveryDays")));
+        return orderService.updateTracking(id, courier, tracking, days);
+    }
+
     @PatchMapping("/{id}/status")
     public Order updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return orderService.updateStatus(id, body.get("status"));
