@@ -102,7 +102,7 @@ public class OrderService {
         if (!isAdmin(admin)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
 
         String normalized = status == null ? "" : status.trim().toUpperCase();
-        if (!List.of("PLACED", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED").contains(normalized)) {
+        if (!List.of("PLACED", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "RETURN_APPROVED", "REFUNDED").contains(normalized)) {
             throw new RuntimeException("Invalid order status");
         }
 
