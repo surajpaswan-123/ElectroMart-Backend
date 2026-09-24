@@ -1,21 +1,24 @@
 package electromart.ElectroMart.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import electromart.ElectroMart.entity.User;
+import electromart.ElectroMart.repository.UserRepository;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.core.convert.converter.Converter;
 
 @Configuration
 public class SecurityConfig {
-
-    @Autowired
-    private JwtFilter jwtFilter;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -24,21 +27,38 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/login",
-                    "/api/auth/register",
-                    "/api/auth/send-otp",
-                    "/api/auth/verify-otp",
-                    "/api/auth/resend-otp"
-                ).permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/api/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults());
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(clerkJwtAuthenticationConverter()))
+            );
 
-
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    Converter<Jwt, AbstractAuthenticationToken> clerkJwtAuthenticationConverter(UserRepository userRepository) {
+        return jwt -> {
+            String email = jwt.getClaimAsString("email");
+            if (email == null || email.isBlank()) {
+                throw new IllegalArgumentException(
+                    "Clerk session token is missing the 'email' custom claim"
+                );
+            }
+
+            String role = "USER";
+            User localUser = userRepository.findByEmail(email.trim().toLowerCase()).orElse(null);
+            if (localUser != null && localUser.getRole() != null && !localUser.getRole().isBlank()) {
+                role = localUser.getRole();
+            }
+
+            return new UsernamePasswordAuthenticationToken(
+                email.trim().toLowerCase(),
+                jwt.getSubject(),
+                List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+            );
+        };
     }
 
     @Bean
