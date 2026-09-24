@@ -153,7 +153,7 @@ public class CouponService {
         if ("PERCENTAGE".equalsIgnoreCase(r.getDiscountType()) && r.getDiscountValue() > 100) throw new RuntimeException("Percentage cannot exceed 100");
         if (r.getMinimumOrderValue() != null && r.getMinimumOrderValue() < 0) throw new RuntimeException("Minimum order value cannot be negative");
         if (r.getMaximumDiscount() != null && r.getMaximumDiscount() < 0) throw new RuntimeException("Maximum discount cannot be negative");
-        if (r.getusageLimitSafe() != null) { }
+        if (r.getUsageLimit() != null && r.getUsageLimit() <= 0) throw new RuntimeException("Usage limit must be greater than 0");
     }
 
     private String normalize(String code) { return code.trim().toUpperCase(Locale.ROOT); }
