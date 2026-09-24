@@ -15,10 +15,12 @@ import electromart.ElectroMart.entity.Product;
 import electromart.ElectroMart.entity.ProductImage;
 import electromart.ElectroMart.entity.ProductVariant;
 import electromart.ElectroMart.repository.ProductRepository;
+import electromart.ElectroMart.repository.ReviewRepository;
 
 @Service
 public class ProductService {
     @Autowired private ProductRepository productRepository;
+    @Autowired private ReviewRepository reviewRepository;
 
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll().stream().map(this::toProductResponse).toList();
@@ -60,7 +62,7 @@ public class ProductService {
                 .id(product.getId()).title(product.getTitle()).description(product.getDescription())
                 .price(product.getPrice()).oldPrice(product.getOldPrice()).stock(product.getStock())
                 .brand(product.getBrand()).image(product.getImageUrl()).imageUrl(product.getImageUrl())
-                .rating(product.getRating()).reviews(null).category(categoryResponse)
+                .rating(product.getRating()).reviews((double) reviewRepository.countByProductId(product.getId())).category(categoryResponse)
                 .images(product.getImages() == null ? List.of() : product.getImages().stream().map(i -> ProductImageResponse.builder().id(i.getId()).imageUrl(i.getImageUrl()).displayOrder(i.getDisplayOrder()).primaryImage(i.getPrimaryImage()).build()).toList())
                 .variants(product.getVariants() == null ? List.of() : product.getVariants().stream().map(v -> ProductVariantResponse.builder().id(v.getId()).sku(v.getSku()).name(v.getName()).color(v.getColor()).size(v.getSize()).storage(v.getStorage()).price(v.getPrice()).oldPrice(v.getOldPrice()).stock(v.getStock()).active(v.getActive()).build()).toList())
                 .build();
