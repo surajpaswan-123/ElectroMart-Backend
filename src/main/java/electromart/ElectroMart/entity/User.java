@@ -54,4 +54,7 @@ public class User {
 
     @Column(nullable = true)
     private LocalDateTime otpLastSentAt;
+
+    @Column(name = "clerk_user_id", unique = true)
+    private String clerkUserId;
 }
