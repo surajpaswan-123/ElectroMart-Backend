@@ -1,6 +1,7 @@
 package electromart.ElectroMart.service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,9 @@ public class OrderService {
         order.setUser(user);
         order.setOrderDate(LocalDateTime.now());
         order.setOrderStatus("PLACED");
+        order.setTrackingNumber("EM-" + UUID.randomUUID().toString().substring(0, 10).toUpperCase());
+        order.setCourierName("ElectroMart Delivery");
+        order.setEstimatedDeliveryDate(LocalDateTime.now().plusDays(5));
 
         if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
             throw new RuntimeException("Order must contain at least one item");
@@ -117,6 +121,20 @@ public class OrderService {
         if (auth == null || !auth.isAuthenticated()) throw new org.springframework.security.authentication.BadCredentialsException("Unauthorized");
         return userRepository.findByEmail(String.valueOf(auth.getPrincipal()))
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @Transactional
+    public Order updateTracking(Long id, String courierName, String trackingNumber, Integer deliveryDays) {
+        User admin = currentUser();
+        if (!isAdmin(admin)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        Order order = orderRepository.findById(id).orElseThrow(() -> new RuntimeException("Order Not Found"));
+        if (courierName != null && !courierName.isBlank()) order.setCourierName(courierName.trim());
+        if (trackingNumber != null && !trackingNumber.isBlank()) order.setTrackingNumber(trackingNumber.trim());
+        if (deliveryDays != null) {
+            if (deliveryDays < 0 || deliveryDays > 30) throw new IllegalArgumentException("Delivery days must be between 0 and 30");
+            order.setEstimatedDeliveryDate(LocalDateTime.now().plusDays(deliveryDays));
+        }
+        return orderRepository.save(order);
     }
 
     private boolean isAdmin(User user) {
