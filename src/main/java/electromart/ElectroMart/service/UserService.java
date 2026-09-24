@@ -34,6 +34,11 @@ public class UserService {
         return userRepository.findByEmail(normalizeEmail(email)).orElse(null);
     }
 
+    public User findByClerkUserId(String clerkUserId) {
+        if (clerkUserId == null || clerkUserId.isBlank()) return null;
+        return userRepository.findByClerkUserId(clerkUserId).orElse(null);
+    }
+
     public String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase();
     }
