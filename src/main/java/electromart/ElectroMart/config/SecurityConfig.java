@@ -1,3 +1,4 @@
+
 package electromart.ElectroMart.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class SecurityConfig {
@@ -22,34 +24,33 @@ public class SecurityConfig {
         http
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-           
-.authorizeHttpRequests(auth -> auth
-    .requestMatchers(
-        "/api/auth/login",
-        "/api/auth/register",
-        "/api/auth/send-otp",
-        "/api/auth/verify-otp",
-        "/api/auth/resend-otp"
-    ).permitAll()
-    .requestMatchers(
-        org.springframework.http.HttpMethod.GET,
-        "/api/products",
-        "/api/products/**",
-        "/api/categories",
-        "/api/categories/**"
-    ).permitAll()
-    .requestMatchers(
-        org.springframework.http.HttpMethod.OPTIONS,
-        "/api/**"
-    ).permitAll()
-    .anyRequest().authenticated()
-)
+            .sessionManagement(sm ->
+                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/auth/send-otp",
+                    "/api/auth/verify-otp",
+                    "/api/auth/resend-otp"
+                ).permitAll()
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/products",
+                    "/api/products/**",
+                    "/api/categories",
+                    "/api/categories/**"
+                ).permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
+                .anyRequest().authenticated()
+            );
 
-           
+        http.addFilterBefore(
+            jwtFilter,
+            UsernamePasswordAuthenticationFilter.class
+        );
 
-
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
