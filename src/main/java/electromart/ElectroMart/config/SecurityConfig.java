@@ -23,18 +23,30 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/login",
-                    "/api/auth/register",
-                    "/api/auth/send-otp",
-                    "/api/auth/verify-otp",
-                    "/api/auth/resend-otp"
-                ).permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/api/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .httpBasic(Customizer.withDefaults());
+           
+.authorizeHttpRequests(auth -> auth
+    .requestMatchers(
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/send-otp",
+        "/api/auth/verify-otp",
+        "/api/auth/resend-otp"
+    ).permitAll()
+    .requestMatchers(
+        org.springframework.http.HttpMethod.GET,
+        "/api/products",
+        "/api/products/**",
+        "/api/categories",
+        "/api/categories/**"
+    ).permitAll()
+    .requestMatchers(
+        org.springframework.http.HttpMethod.OPTIONS,
+        "/api/**"
+    ).permitAll()
+    .anyRequest().authenticated()
+)
+
+           
 
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
